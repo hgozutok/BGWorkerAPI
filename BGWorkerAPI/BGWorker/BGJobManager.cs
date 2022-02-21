@@ -35,34 +35,42 @@ namespace BGWorkerAPI.BGJobs
             _serviceProvider = serviceProvider;
         }
 
-        public static async Task ScheduleJob(IServiceProvider serviceProvider, IJobDetail job, ITrigger trigger)
+        public static async Task<DateTimeOffset> ScheduleJob( IJobDetail job, ITrigger trigger)
         {
-            var props = new NameValueCollection
-            {
-                { "quartz.scheduler.instanceName", "LocalServer" },
-            { "quartz.scheduler.instanceId", "LocalServer" },
-            { "quartz.jobStore.type", "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz" },
-            { "quartz.jobStore.useProperties", "true" },
-            { "quartz.jobStore.dataSource", "default" },
-            { "quartz.jobStore.tablePrefix", "QRTZ_" },
-            { "quartz.jobStore.clustered", "true" },
-            { "quartz.jobStore.dontSetAutoCommitFalse", "True" },
-            { "quartz.dataSource.default.provider", "SqlServer" },
-         //   { "serilog.logger.org.quartz", "ERROR,CONSOLE" },
-             { "quartz.jobStore.lockHandler.type", "Quartz.Impl.AdoJobStore.UpdateLockRowSemaphore, Quartz" },
-           // {  "quartz.dataSource.default.connectionString",
-              //Configuration.GetConnectionString("QuartzConn") },
-            //  @"Server=GOZUTOK\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
-           // @"Server=HUGO\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
-            { "quartz.threadPool.threadCount", "15" },
-            { "quartz.serializer.type", "json" },
-            };
-            var factory = new StdSchedulerFactory(props);
-            var sched = await factory.GetScheduler();
-            sched.JobFactory = new JobFactory(serviceProvider);
+            //IServiceProvider serviceProvider,
+            //   var props = new NameValueCollection
+            //   {
+            //       { "quartz.scheduler.instanceName", "LocalServer" },
+            //   { "quartz.scheduler.instanceId", "LocalServer" },
+            //   { "quartz.jobStore.type", "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz" },
+            //   { "quartz.jobStore.useProperties", "true" },
+            //   { "quartz.jobStore.dataSource", "default" },
+            //   { "quartz.jobStore.tablePrefix", "QRTZ_" },
+            //   { "quartz.jobStore.clustered", "true" },
+            //   { "quartz.jobStore.dontSetAutoCommitFalse", "True" },
+            //   { "quartz.dataSource.default.provider", "SqlServer" },
+            ////   { "serilog.logger.org.quartz", "ERROR,CONSOLE" },
+            //    { "quartz.jobStore.lockHandler.type", "Quartz.Impl.AdoJobStore.UpdateLockRowSemaphore, Quartz" },
+            //  // {  "quartz.dataSource.default.connectionString",
+            //     //Configuration.GetConnectionString("QuartzConn") },
+            //   //  @"Server=GOZUTOK\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
+            //  // @"Server=HUGO\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
+            //   { "quartz.threadPool.threadCount", "15" },
+            //   { "quartz.serializer.type", "json" },
+            //   };
+            //   var factory = new StdSchedulerFactory(props);
+            //   var sched = await factory.GetScheduler();
+            //   sched.JobFactory = new JobFactory(serviceProvider);
 
-            await sched.Start();
-            await sched.ScheduleJob(job, trigger);
+            //   await sched.Start();
+
+            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+
+            var scheduler = schedulers[0];
+
+
+            var result= await scheduler.ScheduleJob(job, trigger);
+            return result;
         }
 
         public static async Task<List<IJobDetail>> JobsListAsync(IScheduler scheduler)

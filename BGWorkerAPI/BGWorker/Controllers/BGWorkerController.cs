@@ -72,31 +72,30 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
         // POST api/<BGWorkerController>
         [HttpPost]
-        public async Task PostAsync([FromBody] string value)
+        [Route("CreateBasicJob/")]
+        public async Task<string> PostAsync([FromBody] string value)
         {
 
-            //JobKey jobKeySMS = new JobKey("SMSJob", "Groupe1");
-            //IJobDetail jobDetailSMS = JobBuilder.Create().newJob(SendSMS.class).withIdentity(jobKeySMS).build();
+            string result = "";
 
             var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
 
-            var scheduler = schedulers[0];                //= new StdSchedulerFactory().GetScheduler("Scheduler-Core").GetAwaiter().GetResult();
-        //scheduler.Clear();
-   // scheduler.Start();
-
-   // scheduler.ScheduleJob(jobDetailSMS, DYNAMIC_TRIGGER);
+            var scheduler = schedulers[0];             
+  
 
 
-            string jobName = "BGJOB," ;
+
+            string jobName = "BGJOB" ;
             var jobKey = new JobKey(jobName, "DEFAULT");
             // var activejobs = await _scheduler.GetCurrentlyExecutingJobs();
             if (await BGJobManager.CheckExists(scheduler, jobName) == true)
             {
                 Console.WriteLine("job already running");
+                result= "job already running";
             }
             else
             {
-              //  var user = await _userManager.FindByEmailAsync(User.Identity.Name);
+            
 
                 IJobDetail jobDetail = JobBuilder.Create<BasicBGJob>()
 
@@ -124,14 +123,15 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
 
 
-                // BGJobManager.ScheduleJob(, jobDetail, trigger);
-                var result = scheduler.ScheduleJob(jobDetail, trigger).GetAwaiter().GetResult();
-       
+               var results = BGJobManager.ScheduleJob(jobDetail, trigger);
+   
 
+                result= JsonConvert.SerializeObject(results);
 
-                Console.WriteLine(result);
+         
     
             }
+            return result;
         }
 
             // PUT api/<BGWorkerController>/5
