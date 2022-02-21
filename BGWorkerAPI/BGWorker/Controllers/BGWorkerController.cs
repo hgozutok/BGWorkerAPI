@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Quartz;
 using Quartz.Impl;
 using Quartz.Listener;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace BGWorkerAPI.BGWorker.Controllers
@@ -29,6 +28,9 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
             // GET: api/<BGWorkerController>
         [HttpGet]
+
+        // [Route("/ChangeOrderStatus/{storeid}/{orderid}/{status}/")]
+        [Route("GetJobList/")]
         public async Task<IEnumerable<string>> GetAsync()
         {
 
@@ -36,18 +38,30 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
             var scheduler = schedulers[0];
             List<IJobDetail> list = await BGJobManager.JobsListAsync(scheduler);
-
-
-            string jsonString="";
-            foreach (var job in list)
-            {
-                jsonString += "Key"+ job.Key + ", Durable" + job.Durable + ", JobDataMap" + job.JobDataMap + ", JobType" 
-                    + job.JobType + ", Description" + job.Description +",";
-
-            }
+            string jsonString = "";
+            if (list != null)
+                 jsonString= JsonConvert.SerializeObject(list);
 
             return new string[] { jsonString };
         }
+
+        [HttpGet]
+        [Route("GetActiveJobList/")]
+        public async Task<IEnumerable<string>> GetActiveJobListAsync()
+        {
+
+            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+
+            var scheduler = schedulers[0];
+            List<IJobDetail> list = await BGJobManager.JobsActiveListAsync(scheduler);
+            string jsonString = "";
+            if (list != null)
+                jsonString = JsonConvert.SerializeObject(list);
+
+
+            return new string[] { jsonString };
+        }
+
 
         // GET api/<BGWorkerController>/5
         [HttpGet("{id}")]
