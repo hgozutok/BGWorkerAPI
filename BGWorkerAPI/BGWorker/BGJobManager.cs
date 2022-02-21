@@ -28,6 +28,13 @@ namespace BGWorkerAPI.BGJobs
     }
     public class BGJobManager
     {
+        private readonly IServiceProvider _serviceProvider;
+
+        public BGJobManager(IServiceProvider serviceProvider)
+        {
+            _serviceProvider = serviceProvider;
+        }
+
         public static async Task ScheduleJob(IServiceProvider serviceProvider, IJobDetail job, ITrigger trigger)
         {
             var props = new NameValueCollection
@@ -133,6 +140,20 @@ namespace BGWorkerAPI.BGJobs
                         jobs.Add(item.JobDetail);
                     }
                 }
+            }
+
+            return jobs;
+        }
+
+        public static async Task<List<IJobDetail>> JobsActiveListAsync(IScheduler scheduler)
+        {
+            List<IJobDetail> jobs = new List<IJobDetail>();
+            var jobslist = await scheduler.GetCurrentlyExecutingJobs();
+            foreach (var item in jobslist)
+            {
+               
+                        jobs.Add(item.JobDetail);
+          
             }
 
             return jobs;

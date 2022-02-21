@@ -1,7 +1,10 @@
 ﻿using BGWorkerAPI.BGJobs;
 using Microsoft.AspNetCore.Mvc;
 using Quartz;
-
+using Quartz.Impl;
+using Quartz.Listener;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace BGWorkerAPI.BGWorker.Controllers
@@ -12,19 +15,38 @@ namespace BGWorkerAPI.BGWorker.Controllers
     [ApiController]
     public class BGWorkerController : ControllerBase
     {
-        private IScheduler _scheduler;
+        //private IScheduler _scheduler;
+        private readonly IServiceProvider _serviceProvider;
 
-        public BGWorkerController(IScheduler scheduler)
+
+        public BGWorkerController(
+           // IScheduler scheduler, 
+            IServiceProvider serviceProvider)
         {
-            _scheduler = scheduler;
+           // _scheduler = scheduler;
+            _serviceProvider = serviceProvider;
         }
 
-        // GET: api/<BGWorkerController>
+            // GET: api/<BGWorkerController>
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task<IEnumerable<string>> GetAsync()
         {
 
-            return new string[] { "value1", "value2" };
+            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+
+            var scheduler = schedulers[0];
+            List<IJobDetail> list = await BGJobManager.JobsListAsync(scheduler);
+
+
+            string jsonString="";
+            foreach (var job in list)
+            {
+                jsonString += "Key"+ job.Key + ", Durable" + job.Durable + ", JobDataMap" + job.JobDataMap + ", JobType" 
+                    + job.JobType + ", Description" + job.Description +",";
+
+            }
+
+            return new string[] { jsonString };
         }
 
         // GET api/<BGWorkerController>/5
@@ -38,32 +60,62 @@ namespace BGWorkerAPI.BGWorker.Controllers
         [HttpPost]
         public async Task PostAsync([FromBody] string value)
         {
-            var jobKey = new JobKey("SendCWSDataToWoocommerce", "DEFAULT");
-            if (await _scheduler.CheckExists(jobKey))
+
+            //JobKey jobKeySMS = new JobKey("SMSJob", "Groupe1");
+            //IJobDetail jobDetailSMS = JobBuilder.Create().newJob(SendSMS.class).withIdentity(jobKeySMS).build();
+
+            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+
+            var scheduler = schedulers[0];                //= new StdSchedulerFactory().GetScheduler("Scheduler-Core").GetAwaiter().GetResult();
+        //scheduler.Clear();
+   // scheduler.Start();
+
+   // scheduler.ScheduleJob(jobDetailSMS, DYNAMIC_TRIGGER);
+
+
+            string jobName = "BGJOB," ;
+            var jobKey = new JobKey(jobName, "DEFAULT");
+            // var activejobs = await _scheduler.GetCurrentlyExecutingJobs();
+            if (await BGJobManager.CheckExists(scheduler, jobName) == true)
             {
-                //do st
+                Console.WriteLine("job already running");
             }
             else
             {
+              //  var user = await _userManager.FindByEmailAsync(User.Identity.Name);
+
                 IJobDetail jobDetail = JobBuilder.Create<BasicBGJob>()
 
-                .WithIdentity("Basic BG")
-                // .UsingJobData("Username", User.Identity.Name)
-                // .UsingJobData("status", "queuing..")
-                .WithDescription("Send Datas From Codeswholesale to woocommere")
+                .WithIdentity(jobName)
+                .UsingJobData("Username","HugoSpring")
+                .UsingJobData("status", "Queued..")
+
+                .UsingJobData("jwttoken", "TOKEN HERE")
+
+
+                .WithDescription("Send Datas  parameters: " )
 
                 .Build();
-                jobDetail.JobDataMap.Put("StoreId", "1");
 
                 ITrigger trigger = TriggerBuilder.Create()
-                 .WithIdentity("GetCWSSendWooDataTrigger", "SendCWStoWoo")
+                 .WithIdentity(jobName + "Trigger", "SendCWStoWoo")
                 .StartNow()
 
-                .WithSimpleSchedule(x => x.WithIntervalInSeconds(50).WithRepeatCount(1))
+                .WithSimpleSchedule(x => x.WithIntervalInHours(24)
+                                      .WithMisfireHandlingInstructionNextWithExistingCount()
+                                      .WithRepeatCount(1)
+                //                    .WithMisfireHandlingInstructionFireNow()
+                )
                 .Build();
 
-                await _scheduler.ScheduleJob(jobDetail, trigger);
-                Console.WriteLine("job started");
+
+
+                // BGJobManager.ScheduleJob(, jobDetail, trigger);
+                var result = scheduler.ScheduleJob(jobDetail, trigger).GetAwaiter().GetResult();
+       
+
+
+                Console.WriteLine(result);
     
             }
         }

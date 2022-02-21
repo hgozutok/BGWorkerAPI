@@ -15,6 +15,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Quartz;
 using System.Configuration;
+using System.Collections.Specialized;
+using BGWorkerAPI.BGJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,20 +61,53 @@ var builder = WebApplication.CreateBuilder(args);
         options.Scheduling.OverWriteExistingData = true; // default: true
     });
 
+
+    NameValueCollection nc = new NameValueCollection {
+            { "quartz.scheduler.instanceName", "LocalServer" },
+            { "quartz.scheduler.instanceId", "LocalServer" },
+            { "quartz.jobStore.type", "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz" },
+            { "quartz.jobStore.useProperties", "true" },
+            { "quartz.jobStore.dataSource", "default" },
+            { "quartz.jobStore.tablePrefix", "QRTZ_" },
+            { "quartz.jobStore.clustered", "true" },
+            { "quartz.jobStore.dontSetAutoCommitFalse", "True" },
+            { "quartz.dataSource.default.provider", "SqlServer" },
+         //   { "serilog.logger.org.quartz", "ERROR,CONSOLE" },
+             { "quartz.jobStore.lockHandler.type", "Quartz.Impl.AdoJobStore.UpdateLockRowSemaphore, Quartz" },
+            {  "quartz.dataSource.default.connectionString",
+              builder.Configuration.GetConnectionString("QuartzConn") },
+            //  @"Server=GOZUTOK\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
+           // @"Server=HUGO\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
+            { "quartz.threadPool.threadCount", "5" },
+            { "quartz.serializer.type", "json" },
+            };
+
+
+
+
     services.AddQuartz(q =>
     {
         q.UseMicrosoftDependencyInjectionScopedJobFactory();
+        // q.AddJob<BasicBGJob>(opts => opts.WithIdentity("1"));
+        q.UseMicrosoftDependencyInjectionJobFactory();
+        q.UseMicrosoftDependencyInjectionScopedJobFactory();
+
+
+
+
+
 
         q.SchedulerId = "Scheduler-Core";
         q.UsePersistentStore(s =>
         {
+           
             s.UseProperties = true;
             s.RetryInterval = TimeSpan.FromSeconds(15);
             s.UseSqlServer(sqlServer =>
             {
                 sqlServer.ConnectionString = builder.Configuration.GetConnectionString("QuartzConn");
-                // this is the default
-                sqlServer.TablePrefix = "QRTZ_";
+            // this is the default
+            sqlServer.TablePrefix = "QRTZ_";
             });
             s.UseJsonSerializer();
             s.UseClustering(c =>
@@ -81,6 +116,7 @@ var builder = WebApplication.CreateBuilder(args);
                 c.CheckinInterval = TimeSpan.FromSeconds(10);
             });
         });
+
 
     });
     services.AddQuartzServer(options =>
@@ -119,6 +155,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 }
 // Add services to the container.
+builder.Services.AddScoped<BasicBGJob>();
+//builder.Services.AddSingleton(provider => _scheduler);
+
+
+builder.Services.AddControllersWithViews().
+        AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        });
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
