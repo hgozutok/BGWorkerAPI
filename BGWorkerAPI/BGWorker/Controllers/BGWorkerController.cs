@@ -37,7 +37,7 @@ namespace BGWorkerAPI.BGWorker.Controllers
             var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
 
             var scheduler = schedulers[0];
-            List<IJobDetail> list = await BGJobManager.JobsListAsync(scheduler);
+            List<IJobDetail> list = await BGJobManager.JobsListAsync();
             string jsonString = "";
             if (list != null)
                  jsonString= JsonConvert.SerializeObject(list);
@@ -64,10 +64,16 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
 
         // GET api/<BGWorkerController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+       [HttpGet("{jobName}")]
+        // [Route("/GetJobDetails/{jobName}/")]
+        public async Task<string> GetAsync(string jobName)
         {
-            return "value";
+            var myJob = await BGJobManager.GetJobDetailAsync(jobName);
+            if (myJob == null)
+                return "Job could't found";
+
+            return JsonConvert.SerializeObject(myJob);
+           
         }
 
         // POST api/<BGWorkerController>
@@ -78,9 +84,9 @@ namespace BGWorkerAPI.BGWorker.Controllers
 
             string result = "";
 
-            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+            //var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
 
-            var scheduler = schedulers[0];             
+            //var scheduler = schedulers[0];             
   
 
 
@@ -88,7 +94,7 @@ namespace BGWorkerAPI.BGWorker.Controllers
             string jobName = "BGJOB" ;
             var jobKey = new JobKey(jobName, "DEFAULT");
             // var activejobs = await _scheduler.GetCurrentlyExecutingJobs();
-            if (await BGJobManager.CheckExists(scheduler, jobName) == true)
+            if (await BGJobManager.CheckExists( jobName) == true)
             {
                 Console.WriteLine("job already running");
                 result= "job already running";
@@ -135,15 +141,26 @@ namespace BGWorkerAPI.BGWorker.Controllers
         }
 
             // PUT api/<BGWorkerController>/5
-            [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+            [HttpPut("{jobName}/{newStartDate}")]
+        public async Task<string> PutAsync(string jobName, DateTimeOffset newStartDate, [FromBody] string value)
         {
+
+            var myJob = await BGJobManager.JobRescheduleAsync(jobName,newStartDate);
+
+
+            return JsonConvert.SerializeObject(myJob);
+
+
         }
 
         // DELETE api/<BGWorkerController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpDelete("{jobName}")]
+        public async Task<string> DeleteAsync(string jobName)
         {
+            var myJob = await BGJobManager.JobCancelAsync(jobName);
+           
+
+            return JsonConvert.SerializeObject(myJob);
         }
     }
 }

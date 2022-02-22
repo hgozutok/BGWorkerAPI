@@ -64,26 +64,48 @@ namespace BGWorkerAPI.BGJobs
 
             //   await sched.Start();
 
-            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
-
-            var scheduler = schedulers[0];
+         
 
 
-            var result= await scheduler.ScheduleJob(job, trigger);
+            var result= await GetScheduler().ScheduleJob(job, trigger);
             return result;
         }
 
-        public static async Task<List<IJobDetail>> JobsListAsync(IScheduler scheduler)
+        public static IScheduler GetScheduler()
+        {
+            var schedulers = new StdSchedulerFactory().GetAllSchedulers().Result;
+
+            var scheduler = schedulers[0];
+            return scheduler;
+        }
+
+        public static async Task<List<IJobDetail>> JobsListAsync()
         {
             List<IJobDetail> jobs = new List<IJobDetail>();
 
-            foreach (JobKey jobKey in await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()))
+            foreach (JobKey jobKey in await GetScheduler().GetJobKeys(GroupMatcher<JobKey>.AnyGroup()))
             {
-                jobs.Add(await scheduler.GetJobDetail(jobKey));
+                jobs.Add(await GetScheduler().GetJobDetail(jobKey));
             }
 
             return jobs;
         }
+
+        public static async Task<IJobDetail> GetJobDetailAsync(string jobName)
+        {
+            //IJobDetail jobs = IJobDetail();
+            JobKey jkey = new JobKey(jobName);
+
+            var result = await GetScheduler().GetJobDetail(jkey);
+
+          
+                return result;
+           
+
+          
+        }
+
+
 
         public static async Task<List<IJobDetail>> JobsListAsync(IScheduler scheduler, string username)
         {
@@ -117,7 +139,7 @@ namespace BGWorkerAPI.BGJobs
                 {
                     if (StoreId == storeid)
                     {
-                        string status = await JobsStatusAsync(scheduler, jobDetail.Key.Name);
+                        string status = await JobsStatusAsync( jobDetail.Key.Name);
                         if (status != null)
                         {
                             jobDetail.JobDataMap.Put("status", status);
@@ -167,24 +189,24 @@ namespace BGWorkerAPI.BGJobs
             return jobs;
         }
 
-        public static async Task<bool> JobCancelAsync(IScheduler scheduler, string jobName)
+        public static async Task<bool> JobCancelAsync( string jobName)
         {
             var jobKey = new JobKey(jobName);
 
-            if (await BGJobManager.CheckExists(scheduler, jobName))
+            if (await BGJobManager.CheckExists( jobName))
             {
-                await scheduler.DeleteJob(jobKey);
+                await GetScheduler().DeleteJob(jobKey);
                 return true;
             }
             else
                 return false;
         }
 
-        public static async Task<bool> CheckExists(IScheduler scheduler, string jobName)
+        public static async Task<bool> CheckExists( string jobName)
         {
             var jobKey = new JobKey(jobName);
 
-            if (await scheduler.CheckExists(jobKey))
+            if (await GetScheduler().CheckExists(jobKey))
             {
                 return true;
             }
@@ -192,14 +214,14 @@ namespace BGWorkerAPI.BGJobs
                 return false;
         }
 
-        public static async Task<string> JobsStatusAsync(IScheduler scheduler, string jobName)
+        public static async Task<string> JobsStatusAsync( string jobName)
         {
             string status = null;
-            if (await CheckExists(scheduler, jobName) == true)
+            if (await CheckExists( jobName) == true)
             {
                 //var jobKey = new JobKey(jobName);
                 //List<IJobDetail> jobs = new List<IJobDetail>();
-                var jobslist = await scheduler.GetCurrentlyExecutingJobs();
+                var jobslist = await GetScheduler().GetCurrentlyExecutingJobs();
 
                 foreach (var item in jobslist)
                 {
@@ -222,14 +244,14 @@ namespace BGWorkerAPI.BGJobs
             }
             return status;
         }
-        public static async Task<string> JobsLastItemAsync(IScheduler scheduler, string jobName)
+        public static async Task<string> JobsLastItemAsync( string jobName)
         {
             string lastItem = null;
-            if (await CheckExists(scheduler, jobName) == true)
+            if (await CheckExists( jobName) == true)
             {
                 //var jobKey = new JobKey(jobName);
                 //List<IJobDetail> jobs = new List<IJobDetail>();
-                var jobslist = await scheduler.GetCurrentlyExecutingJobs();
+                var jobslist = await GetScheduler().GetCurrentlyExecutingJobs();
 
                 foreach (var item in jobslist)
                 {
@@ -251,13 +273,13 @@ namespace BGWorkerAPI.BGJobs
             }
             return lastItem;
         }
-        public static async Task<bool> JobRescheduleAsync(IScheduler scheduler, string jobName, DateTimeOffset startTime)
+        public static async Task<bool> JobRescheduleAsync(string jobName, DateTimeOffset startTime)
         {
             var jobKey = new JobKey(jobName);
 
-            if (await BGJobManager.CheckExists(scheduler, jobName))
+            if (await BGJobManager.CheckExists( jobName))
             {
-                TriggerKey triggerkey = new TriggerKey("JobCWSToWoocommerceTrigger", "SendCWStoWoo");
+                TriggerKey triggerkey = new TriggerKey("RescheduleTrigger", "Reschedule");
 
                 ITrigger trigger = TriggerBuilder.Create()
                  .WithIdentity("JobCWSToWoocommerceTrigger", "SendCWStoWoo")
@@ -268,7 +290,7 @@ namespace BGWorkerAPI.BGJobs
                                     .WithRepeatCount(1)
                                     .WithMisfireHandlingInstructionFireNow())
                 .Build();
-                await scheduler.RescheduleJob(triggerkey, trigger);
+                await GetScheduler().RescheduleJob(triggerkey, trigger);
                 return true;
             }
             else
