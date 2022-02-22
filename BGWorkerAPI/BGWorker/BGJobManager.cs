@@ -12,61 +12,14 @@ using System.Threading.Tasks;
 
 namespace BGWorkerAPI.BGJobs
 {
-    public class BGJobDetail
-    {
-        [Key]
-        public int ID { get; set; }
-        public string JobName { get; set; }
-        public string userName { get; set; }
-        [ForeignKey("storeID")]
-        public int storeID { get; set; }
-        public string JobStatus { get; set; }
-        public string LastItem { get; set; }
-        public DateTime startDate { get; set; }
-        public bool active { get; set; }
    
-    }
     public class BGJobManager
     {
-        private readonly IServiceProvider _serviceProvider;
-
-        public BGJobManager(IServiceProvider serviceProvider)
-        {
-            _serviceProvider = serviceProvider;
-        }
+      
 
         public static async Task<DateTimeOffset> ScheduleJob( IJobDetail job, ITrigger trigger)
         {
-            //IServiceProvider serviceProvider,
-            //   var props = new NameValueCollection
-            //   {
-            //       { "quartz.scheduler.instanceName", "LocalServer" },
-            //   { "quartz.scheduler.instanceId", "LocalServer" },
-            //   { "quartz.jobStore.type", "Quartz.Impl.AdoJobStore.JobStoreTX, Quartz" },
-            //   { "quartz.jobStore.useProperties", "true" },
-            //   { "quartz.jobStore.dataSource", "default" },
-            //   { "quartz.jobStore.tablePrefix", "QRTZ_" },
-            //   { "quartz.jobStore.clustered", "true" },
-            //   { "quartz.jobStore.dontSetAutoCommitFalse", "True" },
-            //   { "quartz.dataSource.default.provider", "SqlServer" },
-            ////   { "serilog.logger.org.quartz", "ERROR,CONSOLE" },
-            //    { "quartz.jobStore.lockHandler.type", "Quartz.Impl.AdoJobStore.UpdateLockRowSemaphore, Quartz" },
-            //  // {  "quartz.dataSource.default.connectionString",
-            //     //Configuration.GetConnectionString("QuartzConn") },
-            //   //  @"Server=GOZUTOK\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
-            //  // @"Server=HUGO\SQLEXPRESS;Initial Catalog=Quartz;Integrated Security=True" },
-            //   { "quartz.threadPool.threadCount", "15" },
-            //   { "quartz.serializer.type", "json" },
-            //   };
-            //   var factory = new StdSchedulerFactory(props);
-            //   var sched = await factory.GetScheduler();
-            //   sched.JobFactory = new JobFactory(serviceProvider);
-
-            //   await sched.Start();
-
-         
-
-
+  
             var result= await GetScheduler().ScheduleJob(job, trigger);
             return result;
         }
@@ -104,8 +57,6 @@ namespace BGWorkerAPI.BGJobs
 
           
         }
-
-
 
         public static async Task<List<IJobDetail>> JobsListAsync(IScheduler scheduler, string username)
         {
@@ -145,7 +96,7 @@ namespace BGWorkerAPI.BGJobs
                             jobDetail.JobDataMap.Put("status", status);
                         }
 
-                        //   jobDetail.JobDataMap.Add("lastItem", await JobsLastItemAsync(scheduler, jobDetail.Key.Name));
+                     
                         jobs.Add(jobDetail);
                     }
                 }
